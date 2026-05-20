@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "mongodb": {
+      "command": "npx",
+      "args": ["-y", "mongodb-mcp-server@latest"],
+      "env": {
+        "MONGODB_CONNECTION_STRING": "${MONGODB_URI}"
+      }
+    },
+    "receipts-mcp": {
+      "command": "node",
+      "args": ["services/receipts-mcp/dist/index.js", "--transport", "stdio"],
+      "env": {}
+    }
+  }
+}

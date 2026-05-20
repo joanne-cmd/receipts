@@ -1,0 +1,16 @@
+{
+  "name": "receipts",
+  "private": true,
+  "scripts": {
+    "install:all": "pnpm install",
+    "build": "pnpm -r build",
+    "dev": "concurrently -n ingester,dispatcher,mcp,dashboard -c blue,green,yellow,magenta \"pnpm --filter ingester dev\" \"pnpm --filter dispatcher dev\" \"pnpm --filter receipts-mcp dev\" \"pnpm --filter dashboard dev\"",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "typescript": "^5.5.0"
+  }
+}

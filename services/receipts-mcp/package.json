@@ -1,0 +1,26 @@
+{
+  "name": "@receipts/receipts-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts -- --transport stdio",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start:stdio": "node dist/index.js --transport stdio",
+    "start:sse": "node dist/index.js --transport sse",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0",
+    "@receipts/shared": "workspace:*",
+    "pino": "^9.3.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "pino-pretty": "^11.0.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
