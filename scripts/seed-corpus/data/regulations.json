@@ -1,0 +1,32 @@
+[
+  {
+    "doc_type": "regulation",
+    "jurisdiction": "US",
+    "authority": "DoT",
+    "citation": "14 CFR 259.5",
+    "title": "Cancelled Flight - Full Refund Entitlement",
+    "plain_english": "If an airline cancels your flight, you are entitled to a full cash refund, not just a voucher.",
+    "content": "Under 14 CFR 259.5, airlines are required to provide prompt refunds to passengers when a flight is cancelled, regardless of the reason. The refund must be made to the original form of payment. Airlines may not substitute vouchers or travel credits without passenger consent. Refunds must be processed within 7 business days for credit card purchases and 20 business days for cash purchases.",
+    "source_url": "https://www.ecfr.gov/current/title-14/chapter-II/subchapter-A/part-259"
+  },
+  {
+    "doc_type": "regulation",
+    "jurisdiction": "US",
+    "authority": "FTC",
+    "citation": "16 CFR Part 435",
+    "title": "FTC Mail Order Rule - Undelivered Goods",
+    "plain_english": "If a merchant cannot deliver goods within the promised time, they must offer you a full refund.",
+    "content": "Under the FTC Mail Order Rule (16 CFR Part 435), merchants must ship orders within the time stated in their ads. If no time is stated, they must ship within 30 days. If they cannot meet the shipping deadline, they must notify you and give you the option to cancel for a full refund. Refunds must be issued within 7 business days.",
+    "source_url": "https://www.ftc.gov/legal-library/browse/rules/mail-internet-or-telephone-order-merchandise-rule"
+  },
+  {
+    "doc_type": "regulation",
+    "jurisdiction": "US",
+    "authority": "FRB",
+    "citation": "15 U.S.C. 1666",
+    "title": "Fair Credit Billing Act - Billing Error Disputes",
+    "plain_english": "You have the right to dispute incorrect charges on your credit card and the bank must investigate.",
+    "content": "Under the Fair Credit Billing Act (15 U.S.C. 1666), consumers have the right to dispute billing errors on credit card statements. You must dispute the charge in writing within 60 days of the statement. The creditor must acknowledge your dispute within 30 days and resolve it within 90 days. During the investigation, you are not required to pay the disputed amount.",
+    "source_url": "https://www.law.cornell.edu/uscode/text/15/1666"
+  }
+]

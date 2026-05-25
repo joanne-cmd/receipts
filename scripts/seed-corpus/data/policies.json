@@ -1,0 +1,38 @@
+[
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "amazon",
+    "merchant_display": "Amazon",
+    "category": "return",
+    "title": "Amazon Return Policy - 30 Day Returns",
+    "content": "Most items sold on Amazon.com can be returned within 30 days of receipt of shipment. Items must be in new and unused condition. If the item is defective, damaged, or incorrect, Amazon will cover the return shipping cost. Refunds are issued to the original payment method within 3-5 business days after the return is received and processed.",
+    "source_url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GKM69DUUYKQWKWX7"
+  },
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "amazon",
+    "merchant_display": "Amazon",
+    "category": "delivery",
+    "title": "Amazon Undelivered Package Policy",
+    "content": "If tracking shows delivered but you did not receive your package, Amazon requires you to wait 48 hours before filing a claim as packages may have been left with a neighbor or in a safe location. After 48 hours, contact Amazon customer service. Amazon will investigate and either reship the item or issue a full refund if the item cannot be located.",
+    "source_url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G201889200"
+  },
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "delta",
+    "merchant_display": "Delta Air Lines",
+    "category": "cancellation",
+    "title": "Delta Cancelled Flight Refund Policy",
+    "content": "If Delta cancels your flight, you are entitled to a full refund to your original form of payment, regardless of fare type. This applies even to non-refundable tickets. You may also request a refund if Delta makes a significant schedule change of more than 90 minutes. Refunds are processed within 7 business days for credit card purchases.",
+    "source_url": "https://www.delta.com/us/en/traveling-with-us/flight-and-ticket-changes/cancelled-flights"
+  },
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "doordash",
+    "merchant_display": "DoorDash",
+    "category": "refund",
+    "title": "DoorDash Wrong or Missing Item Refund Policy",
+    "content": "If you received the wrong item or are missing items from your DoorDash order, you are eligible for a refund or DoorDash credits. Report the issue through the app within 14 days of the order. DoorDash will review your claim and issue a refund to your original payment method or account credits within 5-7 business days.",
+    "source_url": "https://help.doordash.com/consumers/s/article/I-received-the-wrong-order"
+  }
+]

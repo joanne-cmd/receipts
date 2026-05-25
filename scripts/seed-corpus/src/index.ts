@@ -1,3 +1,7 @@
+import { config as dotenvConfig } from 'dotenv';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { join, dirname } from 'node:path';
 import pino from 'pino';
 import { connectWithRetry, getDb } from '@receipts/shared';
 
@@ -12,24 +16,34 @@ const logger =
     ? pino({ level: process.env['LOG_LEVEL'] ?? 'info', transport: { target: 'pino-pretty' } })
     : pino({ level: process.env['LOG_LEVEL'] ?? 'info' });
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Load .env from the monorepo root (three levels up from src/)
+dotenvConfig({ path: join(__dirname, '..', '..', '..', '.env') });
+
+async function readJsonFile(relativePath: string): Promise<unknown[]> {
+  const fullPath = join(__dirname, '..', relativePath);
+  const raw = await readFile(fullPath, 'utf-8');
+  return JSON.parse(raw) as unknown[];
+}
+
 export async function seedCorpus(): Promise<void> {
   const mongoUri = requireEnv('MONGODB_URI');
 
-  logger.info(
-    [
-      'STUB: seed-corpus is a placeholder.',
-      'In Week 1, this script will:',
-      '  1) Read policies/regulations/playbooks from ./data/*.json',
-      '  2) Call the Voyage API to embed each document (voyage-3, 1024 dims)',
-      '  3) Upsert documents into MongoDB with their embeddings',
-      '  4) Verify Atlas Vector Search indexes exist on each collection',
-    ].join('\n'),
-  );
+  const [policies, regulations] = await Promise.all([
+    readJsonFile('data/policies.json'),
+    readJsonFile('data/regulations.json'),
+  ]);
+
+  const docs = [...policies, ...regulations];
+  logger.info(`Read ${policies.length} policies and ${regulations.length} regulations (${docs.length} total)`);
 
   const client = await connectWithRetry(mongoUri);
-  const _db = getDb(client);
+  const db = getDb(client);
+  const collection = db.collection('knowledge');
 
-  logger.info('Connected to MongoDB — ready to seed (STUB)');
+  const result = await collection.insertMany(docs as object[]);
+  logger.info(`Inserted ${result.insertedCount} documents into the 'knowledge' collection`);
 
   await client.close();
 }
