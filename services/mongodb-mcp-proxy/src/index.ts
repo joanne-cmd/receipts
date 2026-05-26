@@ -75,7 +75,56 @@ app.post('/message', async (req, res) => {
 
 // ── Legacy REST endpoint ──────────────────────────────────────────────────────
 
-const QueryBody = z.object({ query: z.string().min(1), collection: z.enum(['knowledge']) });
+const OPENAPI_SPEC = {
+  openapi: '3.0.0',
+  info: {
+    title: 'Receipts Knowledge Search',
+    version: '1.0.0',
+    description: 'Search merchant policies and US consumer regulations',
+  },
+  paths: {
+    '/query': {
+      post: {
+        operationId: 'searchKnowledge',
+        summary: 'Search the knowledge base for relevant policies and regulations',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['query'],
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: "The search query, e.g. 'Amazon undelivered package refund policy'",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'List of relevant documents',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { type: 'object' } },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+app.get('/openapi.json', (_req, res) => { res.json(OPENAPI_SPEC); });
+
+const QueryBody = z.object({
+  query: z.string().min(1),
+  collection: z.enum(['knowledge']).optional().default('knowledge'),
+});
 
 app.post('/query', async (req, res) => {
   const parsed = QueryBody.safeParse(req.body);
