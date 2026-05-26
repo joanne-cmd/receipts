@@ -1,5 +1,7 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MOCK_DISPUTES } from '@/lib/mock-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { DisputeStatus } from '@/lib/mock-data';
+import type { Dispute, DisputeStatus } from '@/lib/mock-data';
 
 function statusBadgeVariant(
   status: DisputeStatus,
@@ -45,20 +47,27 @@ function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 }
 
+const CLOSED_STATUSES = new Set([
+  'resolved_won',
+  'resolved_lost',
+  'resolved_partial',
+  'cancelled',
+  'referred_to_lawyer',
+]);
+
 export default function InboxPage() {
-  const disputes = MOCK_DISPUTES;
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const openCount = disputes.filter(
-    (d) =>
-      ![
-        'resolved_won',
-        'resolved_lost',
-        'resolved_partial',
-        'cancelled',
-        'referred_to_lawyer',
-      ].includes(d.status),
-  ).length;
+  useEffect(() => {
+    fetch('/api/disputes')
+      .then((r) => r.json())
+      .then((data: Dispute[]) => setDisputes(data))
+      .catch(() => setDisputes([]))
+      .finally(() => setLoading(false));
+  }, []);
 
+  const openCount = disputes.filter((d) => !CLOSED_STATUSES.has(d.status)).length;
   const totalDisputed = disputes.reduce((sum, d) => sum + (d.amount_disputed ?? 0), 0);
   const totalRecovered = disputes.reduce((sum, d) => sum + (d.amount_recovered ?? 0), 0);
 
@@ -75,7 +84,7 @@ export default function InboxPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{openCount}</p>
+            <p className="text-3xl font-bold">{loading ? '—' : openCount}</p>
           </CardContent>
         </Card>
 
@@ -86,7 +95,9 @@ export default function InboxPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{formatCurrency(totalDisputed)}</p>
+            <p className="text-3xl font-bold">
+              {loading ? '—' : formatCurrency(totalDisputed)}
+            </p>
           </CardContent>
         </Card>
 
@@ -97,7 +108,9 @@ export default function InboxPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-green-600">{formatCurrency(totalRecovered)}</p>
+            <p className="text-3xl font-bold text-green-600">
+              {loading ? '—' : formatCurrency(totalRecovered)}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -105,55 +118,61 @@ export default function InboxPage() {
       {/* Disputes table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Merchant</TableHead>
-                <TableHead>Issue</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {disputes.map((dispute) => (
-                <TableRow key={dispute._id}>
-                  <TableCell className="font-medium">
-                    {dispute.merchant_display ?? dispute.merchant ?? '—'}
-                  </TableCell>
-                  <TableCell className="capitalize text-muted-foreground">
-                    {dispute.issue_type?.replace(/_/g, ' ') ?? '—'}
-                  </TableCell>
-                  <TableCell>
-                    {dispute.amount_disputed != null
-                      ? formatCurrency(dispute.amount_disputed)
-                      : '—'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusBadgeVariant(dispute.status)}>
-                      {statusLabel(dispute.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {new Date(dispute.updated_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/disputes/${dispute._id}`}
-                      className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-                    >
-                      View
-                    </Link>
-                  </TableCell>
+          {loading ? (
+            <p className="p-6 text-muted-foreground text-sm">Loading disputes…</p>
+          ) : disputes.length === 0 ? (
+            <p className="p-6 text-muted-foreground text-sm">No disputes yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Merchant</TableHead>
+                  <TableHead>Issue</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Updated</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {disputes.map((dispute) => (
+                  <TableRow key={String(dispute._id)}>
+                    <TableCell className="font-medium">
+                      {dispute.merchant_display ?? dispute.merchant ?? '—'}
+                    </TableCell>
+                    <TableCell className="capitalize text-muted-foreground">
+                      {dispute.issue_type?.replace(/_/g, ' ') ?? '—'}
+                    </TableCell>
+                    <TableCell>
+                      {dispute.amount_disputed != null
+                        ? formatCurrency(dispute.amount_disputed)
+                        : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(dispute.status)}>
+                        {statusLabel(dispute.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(dispute.updated_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/disputes/${String(dispute._id)}`}
+                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                      >
+                        View
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

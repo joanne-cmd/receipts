@@ -1,5 +1,6 @@
-import { notFound } from 'next/navigation';
-import { MOCK_DISPUTES } from '@/lib/mock-data';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import type { DisputeStatus } from '@/lib/mock-data';
+import type { Dispute, DisputeStatus } from '@/lib/mock-data';
 
 function statusBadgeVariant(
   status: DisputeStatus,
@@ -41,11 +42,39 @@ interface PageProps {
 }
 
 export default function DisputeDetailPage({ params }: PageProps) {
-  const dispute = MOCK_DISPUTES.find((d) => d._id === params.id);
+  const [dispute, setDispute] = useState<Dispute | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!dispute) notFound();
+  useEffect(() => {
+    fetch(`/api/disputes/${params.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setDispute(data))
+      .catch(() => setDispute(null))
+      .finally(() => setLoading(false));
+  }, [params.id]);
 
-  const currentDraft = dispute.drafts.find(
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <p className="text-muted-foreground text-sm">Loading dispute…</p>
+      </div>
+    );
+  }
+
+  if (!dispute) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground">Dispute not found.</p>
+          <a href="/" className={cn(buttonVariants({ variant: 'outline' }))}>
+            ← Back
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const currentDraft = dispute.drafts?.find(
     (d) => d.version === dispute.current_draft_version,
   );
 
@@ -87,23 +116,27 @@ export default function DisputeDetailPage({ params }: PageProps) {
             <CardTitle>Timeline</CardTitle>
           </CardHeader>
           <CardContent>
-            <ol className="relative border-l border-border ml-2 space-y-4">
-              {dispute.timeline.map((event, i) => (
-                <li key={i} className="ml-4">
-                  <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border border-white bg-primary" />
-                  <time className="text-xs text-muted-foreground">
-                    {new Date(event.timestamp).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </time>
-                  <p className="text-sm mt-0.5">{event.event}</p>
-                  <span className="text-xs text-muted-foreground capitalize">{event.actor}</span>
-                </li>
-              ))}
-            </ol>
+            {dispute.timeline?.length > 0 ? (
+              <ol className="relative border-l border-border ml-2 space-y-4">
+                {dispute.timeline.map((event, i) => (
+                  <li key={i} className="ml-4">
+                    <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border border-white bg-primary" />
+                    <time className="text-xs text-muted-foreground">
+                      {new Date(event.timestamp).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </time>
+                    <p className="text-sm mt-0.5">{event.event}</p>
+                    <span className="text-xs text-muted-foreground capitalize">{event.actor}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-sm text-muted-foreground">No timeline events yet.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -114,7 +147,7 @@ export default function DisputeDetailPage({ params }: PageProps) {
           </CardHeader>
           <CardContent>
             <pre className="rounded-md bg-muted p-4 text-xs overflow-auto max-h-64 whitespace-pre-wrap">
-              {dispute.receipt_raw}
+              {dispute.receipt_raw ?? '—'}
             </pre>
           </CardContent>
         </Card>
@@ -191,7 +224,7 @@ export default function DisputeDetailPage({ params }: PageProps) {
       )}
 
       {/* Merchant responses */}
-      {dispute.merchant_responses.length > 0 && (
+      {dispute.merchant_responses?.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Merchant Responses</CardTitle>
@@ -220,8 +253,4 @@ export default function DisputeDetailPage({ params }: PageProps) {
       )}
     </div>
   );
-}
-
-export function generateStaticParams() {
-  return MOCK_DISPUTES.map((d) => ({ id: d._id }));
 }
