@@ -12,6 +12,16 @@
   {
     "doc_type": "regulation",
     "jurisdiction": "US",
+    "authority": "DoT",
+    "citation": "14 CFR 259.5(b)(1)",
+    "title": "Significant Flight Delay - Refund Right",
+    "plain_english": "If your flight is significantly delayed and you choose not to travel, you are entitled to a full refund.",
+    "content": "Under DoT rules, passengers are entitled to a refund if their flight is significantly delayed and they choose not to travel. A significant delay is generally considered 3 hours for domestic flights and 6 hours for international flights. The refund applies regardless of whether the ticket was non-refundable.",
+    "source_url": "https://www.transportation.gov/airconsumer/fly-rights"
+  },
+  {
+    "doc_type": "regulation",
+    "jurisdiction": "US",
     "authority": "FTC",
     "citation": "16 CFR Part 435",
     "title": "FTC Mail Order Rule - Undelivered Goods",
@@ -28,5 +38,35 @@
     "plain_english": "You have the right to dispute incorrect charges on your credit card and the bank must investigate.",
     "content": "Under the Fair Credit Billing Act (15 U.S.C. 1666), consumers have the right to dispute billing errors on credit card statements. You must dispute the charge in writing within 60 days of the statement. The creditor must acknowledge your dispute within 30 days and resolve it within 90 days. During the investigation, you are not required to pay the disputed amount.",
     "source_url": "https://www.law.cornell.edu/uscode/text/15/1666"
+  },
+  {
+    "doc_type": "regulation",
+    "jurisdiction": "US",
+    "authority": "FTC",
+    "citation": "15 U.S.C. 1693",
+    "title": "Electronic Fund Transfer Act - Unauthorized Transactions",
+    "plain_english": "If someone makes unauthorized charges to your debit card or bank account, you have the right to dispute them.",
+    "content": "Under the Electronic Fund Transfer Act, consumers have the right to dispute unauthorized electronic transactions. You must report unauthorized transactions within 60 days of the bank statement. The bank must investigate within 10 business days and provisionally credit your account. If the bank finds the transaction was unauthorized, they must permanently credit your account.",
+    "source_url": "https://www.ftc.gov/legal-library/browse/statutes/electronic-fund-transfer-act"
+  },
+  {
+    "doc_type": "regulation",
+    "jurisdiction": "US",
+    "authority": "FTC",
+    "citation": "16 CFR Part 444",
+    "title": "FTC Credit Practices Rule",
+    "plain_english": "Merchants cannot use unfair credit practices when collecting debts or billing customers.",
+    "content": "The FTC Credit Practices Rule prohibits creditors from using unfair practices in consumer credit contracts. This includes misrepresenting the amount owed, charging fees not disclosed in the contract, and making false threats. Consumers who are victims of unfair credit practices can file complaints with the FTC and dispute the charges.",
+    "source_url": "https://www.ftc.gov/legal-library/browse/rules/credit-practices-rule"
+  },
+  {
+    "doc_type": "regulation",
+    "jurisdiction": "US",
+    "authority": "CFPB",
+    "citation": "12 CFR Part 1026",
+    "title": "Truth in Lending Act - Regulation Z",
+    "plain_english": "Credit card companies must clearly disclose all fees and you have the right to dispute charges.",
+    "content": "Regulation Z implements the Truth in Lending Act and requires clear disclosure of credit terms. Under Regulation Z, credit card holders have the right to dispute billing errors within 60 days of the statement date. The card issuer must acknowledge the dispute within 30 days and resolve it within two billing cycles. During the dispute, the issuer cannot try to collect the disputed amount.",
+    "source_url": "https://www.consumerfinance.gov/rules-policy/final-rules/2009-truth-lending-act-regulation-z-open-end-credit/"
   }
 ]

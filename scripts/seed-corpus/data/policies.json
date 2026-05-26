@@ -19,6 +19,15 @@
   },
   {
     "doc_type": "merchant_policy",
+    "merchant": "amazon",
+    "merchant_display": "Amazon",
+    "category": "billing",
+    "title": "Amazon Wrong Charge Policy",
+    "content": "If you were charged incorrectly on Amazon, you can request a refund through Your Orders. Amazon will review the claim and issue a refund within 3-5 business days if the charge was in error. For unauthorized charges, contact Amazon immediately and they will investigate and refund any fraudulent transactions.",
+    "source_url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G202124090"
+  },
+  {
+    "doc_type": "merchant_policy",
     "merchant": "delta",
     "merchant_display": "Delta Air Lines",
     "category": "cancellation",
@@ -28,11 +37,56 @@
   },
   {
     "doc_type": "merchant_policy",
+    "merchant": "delta",
+    "merchant_display": "Delta Air Lines",
+    "category": "refund",
+    "title": "Delta Significant Delay Compensation Policy",
+    "content": "Delta provides meal vouchers for delays of 3 or more hours caused by Delta. For delays over 6 hours caused by Delta, passengers may request a full refund even on non-refundable tickets. Hotel accommodations are provided for overnight delays caused by Delta. Cash compensation is not automatically provided but passengers may request refunds.",
+    "source_url": "https://www.delta.com/us/en/traveling-with-us/flight-and-ticket-changes/delayed-flights"
+  },
+  {
+    "doc_type": "merchant_policy",
     "merchant": "doordash",
     "merchant_display": "DoorDash",
     "category": "refund",
     "title": "DoorDash Wrong or Missing Item Refund Policy",
     "content": "If you received the wrong item or are missing items from your DoorDash order, you are eligible for a refund or DoorDash credits. Report the issue through the app within 14 days of the order. DoorDash will review your claim and issue a refund to your original payment method or account credits within 5-7 business days.",
     "source_url": "https://help.doordash.com/consumers/s/article/I-received-the-wrong-order"
+  },
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "uber",
+    "merchant_display": "Uber",
+    "category": "billing",
+    "title": "Uber Incorrect Charge Dispute Policy",
+    "content": "If you were charged incorrectly by Uber, you can dispute the charge through the app within 30 days. Go to the trip in your history, select the issue, and submit a dispute. Uber will review within 5-7 business days. Unauthorized charges should be reported immediately and Uber will issue a full refund after investigation.",
+    "source_url": "https://help.uber.com/riders/article/dispute-a-charge"
+  },
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "airbnb",
+    "merchant_display": "Airbnb",
+    "category": "refund",
+    "title": "Airbnb Guest Refund Policy",
+    "content": "Airbnb's Guest Refund Policy covers situations where the host cancels, the listing is significantly different from described, or the property is uninhabitable. Guests must report issues within 24 hours of check-in. If approved, Airbnb will provide a full or partial refund or alternative accommodation. Claims must include photos and documentation.",
+    "source_url": "https://www.airbnb.com/help/article/544"
+  },
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "walmart",
+    "merchant_display": "Walmart",
+    "category": "return",
+    "title": "Walmart Return Policy - 90 Day Returns",
+    "content": "Most Walmart items can be returned within 90 days of purchase with a receipt. Items must be in original condition. Electronics must be returned within 30 days. If the item is defective, Walmart will provide a full refund or exchange. Online orders can be returned by mail or at any Walmart store.",
+    "source_url": "https://www.walmart.com/help/article/walmart-return-policy/000004828"
+  },
+  {
+    "doc_type": "merchant_policy",
+    "merchant": "united",
+    "merchant_display": "United Airlines",
+    "category": "cancellation",
+    "title": "United Airlines Cancelled Flight Refund Policy",
+    "content": "If United cancels your flight or makes a significant schedule change, you are entitled to a full refund to your original payment method regardless of ticket type. Significant changes include departure or arrival time changes of 30 minutes or more, departure or arrival airport changes, or addition of connections. Refunds are processed within 7 business days.",
+    "source_url": "https://www.united.com/en/us/fly/travel/refunds.html"
   }
 ]
