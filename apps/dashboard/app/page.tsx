@@ -12,7 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { Dispute, DisputeStatus } from '@/lib/mock-data';
 
@@ -55,9 +57,34 @@ const CLOSED_STATUSES = new Set([
   'referred_to_lawyer',
 ]);
 
+type Extracted = {
+  merchant_name: string | null;
+  merchant_support_email: string | null;
+  amount: number | null;
+  issue_type: string | null;
+};
+
+const EMPTY_FORM = {
+  receipt_raw: '',
+  amount_disputed: '',
+};
+
+const EMPTY_EXTRACTED: Extracted = {
+  merchant_name: null,
+  merchant_support_email: null,
+  amount: null,
+  issue_type: null,
+};
+
 export default function InboxPage() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [extracted, setExtracted] = useState<Extracted>(EMPTY_EXTRACTED);
+  const [extracting, setExtracting] = useState(false);
 
   useEffect(() => {
     fetch('/api/disputes')
@@ -71,9 +98,132 @@ export default function InboxPage() {
   const totalDisputed = disputes.reduce((sum, d) => sum + (d.amount_disputed ?? 0), 0);
   const totalRecovered = disputes.reduce((sum, d) => sum + (d.amount_recovered ?? 0), 0);
 
+  async function handleReceiptBlur(e: React.FocusEvent<HTMLTextAreaElement>) {
+    const text = e.target.value;
+    if (text.length < 50) return;
+    setExtracting(true);
+    try {
+      const res = await fetch('/api/extract-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receipt_raw: text }),
+      });
+      if (!res.ok) return;
+      const data = await res.json() as Extracted;
+      setExtracted(data);
+      if (data.amount != null && !form.amount_disputed) {
+        setForm((f) => ({ ...f, amount_disputed: String(data.amount) }));
+      }
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      const body: Record<string, unknown> = {
+        receipt_raw: form.receipt_raw,
+        merchant_email: extracted.merchant_support_email ?? '',
+        merchant_display: extracted.merchant_name ?? '',
+      };
+      if (form.amount_disputed.trim()) body.amount_disputed = parseFloat(form.amount_disputed);
+      if (extracted.issue_type) body.issue_type = extracted.issue_type;
+
+      const res = await fetch('/api/disputes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? 'Failed to create dispute');
+      }
+
+      const created = await res.json() as Dispute;
+      setDisputes((prev) => [created, ...prev]);
+      setShowForm(false);
+      setForm(EMPTY_FORM);
+      setExtracted(EMPTY_EXTRACTED);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Your Disputes</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Your Disputes</h1>
+        <Button onClick={() => { setShowForm((v) => !v); setFormError(null); setExtracted(EMPTY_EXTRACTED); }}>
+          New Dispute
+        </Button>
+      </div>
+
+      {/* New dispute form */}
+      {showForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">New Dispute</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Receipt / Order Email</label>
+                <Textarea
+                  required
+                  placeholder="Paste the receipt or order confirmation email here..."
+                  className="min-h-[150px]"
+                  value={form.receipt_raw}
+                  onChange={(e) => setForm((f) => ({ ...f, receipt_raw: e.target.value }))}
+                  onBlur={handleReceiptBlur}
+                />
+                {extracting && (
+                  <p className="text-xs text-muted-foreground">Detecting merchant…</p>
+                )}
+                {!extracting && extracted.merchant_name && (
+                  <p className="text-xs text-green-600">✓ Merchant detected: {extracted.merchant_name}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium">
+                  Amount Disputed (USD) <span className="text-muted-foreground font-normal">(optional)</span>
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="89.99"
+                  value={form.amount_disputed}
+                  onChange={(e) => setForm((f) => ({ ...f, amount_disputed: e.target.value }))}
+                />
+              </div>
+
+              {formError && (
+                <p className="text-sm text-destructive">{formError}</p>
+              )}
+
+              <div className="flex gap-2">
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? 'Submitting…' : 'Submit Dispute'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

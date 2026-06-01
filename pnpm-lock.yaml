@@ -29,6 +29,9 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
+      google-auth-library:
+        specifier: ^9.15.1
+        version: 9.15.1
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
