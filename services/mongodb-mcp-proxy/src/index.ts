@@ -19,58 +19,51 @@ async function searchKnowledge(query: string) {
   return db.collection('knowledge').aggregate([
     { $search: { index: 'knowledge_text_index', text: { query, path: 'content' } } },
     { $limit: 5 },
-    { $project: { content: 0 } },
+    { $project: { _id: 0, title: 1, content: 1, source: 1, type: 1 } },
   ]).toArray();
 }
 
 // ── MCP server ────────────────────────────────────────────────────────────────
 
-const mcpServer = new Server(
-  { name: 'mongodb-mcp-proxy', version: '0.1.0' },
-  { capabilities: { tools: {} } },
-);
+function createMcpServer(): Server {
+  const server = new Server(
+    { name: 'mongodb-mcp-proxy', version: '0.1.0' },
+    { capabilities: { tools: {} } },
+  );
 
-mcpServer.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [{
-    name: 'search_knowledge',
-    description: 'Full-text search over policies, regulations, and playbooks',
-    inputSchema: {
-      type: 'object' as const,
-      properties: { query: { type: 'string', description: 'Search query' } },
-      required: ['query'],
-    },
-  }],
-}));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [{
+      name: 'search_knowledge',
+      description: 'Search merchant refund policies and US consumer regulations (FTC, DoT, CFPB). Use this before drafting any dispute email.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: { query: { type: 'string', description: 'Search query' } },
+        required: ['query'],
+      },
+    }],
+  }));
 
-mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  if (name !== 'search_knowledge') throw new Error(`Unknown tool: ${name}`);
-  const { query } = z.object({ query: z.string().min(1) }).parse(args);
-  const docs = await searchKnowledge(query);
-  return { content: [{ type: 'text' as const, text: JSON.stringify(docs, null, 2) }] };
-});
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+    if (name !== 'search_knowledge') throw new Error(`Unknown tool: ${name}`);
+    const { query } = z.object({ query: z.string().min(1) }).parse(args);
+    const docs = await searchKnowledge(query);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(docs, null, 2) }] };
+  });
+
+  return server;
+}
 
 // ── Express ───────────────────────────────────────────────────────────────────
 
 const app = express();
 app.use(express.json());
 
-const transports = new Map<string, SSEServerTransport>();
+app.get('/health', (_req, res) => { res.json({ status: 'ok', mongo: 'connected' }); });
 
-app.get('/health', (_req, res) => { res.json({ status: 'ok' }); });
-
-app.get('/', async (_req, res) => {
+app.get('/sse', async (_req, res) => {
   const transport = new SSEServerTransport('/message', res);
-  transports.set(transport.sessionId, transport);
-  res.on('close', () => transports.delete(transport.sessionId));
-  await mcpServer.connect(transport);
-});
-
-app.post('/message', async (req, res) => {
-  const sessionId = req.query['sessionId'] as string;
-  const transport = transports.get(sessionId);
-  if (!transport) { res.status(404).json({ error: 'Session not found' }); return; }
-  await transport.handlePostMessage(req, res);
+  await createMcpServer().connect(transport);
 });
 
 // ── Legacy REST endpoint ──────────────────────────────────────────────────────
@@ -121,10 +114,7 @@ const OPENAPI_SPEC = {
 
 app.get('/openapi.json', (_req, res) => { res.json(OPENAPI_SPEC); });
 
-const QueryBody = z.object({
-  query: z.string().min(1),
-  collection: z.enum(['knowledge']).optional().default('knowledge'),
-});
+const QueryBody = z.object({ query: z.string().min(1) });
 
 app.post('/query', async (req, res) => {
   const parsed = QueryBody.safeParse(req.body);

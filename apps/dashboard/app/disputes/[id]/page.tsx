@@ -44,6 +44,12 @@ interface PageProps {
 export default function DisputeDetailPage({ params }: PageProps) {
   const [dispute, setDispute] = useState<Dispute | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editedBody, setEditedBody] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/disputes/${params.id}`)
@@ -52,6 +58,45 @@ export default function DisputeDetailPage({ params }: PageProps) {
       .catch(() => setDispute(null))
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  async function handleAction(action: 'approve' | 'reject', reason?: string) {
+    setUpdating(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/disputes/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, rejection_reason: reason }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      const updated = await res.json();
+      setDispute(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  async function saveDraft() {
+    setUpdating(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/disputes/${params.id}/draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: editedBody }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      const updated = await res.json();
+      setDispute(updated);
+      setEditing(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -102,9 +147,35 @@ export default function DisputeDetailPage({ params }: PageProps) {
             </Badge>
           </div>
         </div>
-        <a href="/" className={cn(buttonVariants({ variant: 'outline' }))}>
-          ← Back
-        </a>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={async () => {
+              setGenerating(true);
+              setGenerateError(null);
+              try {
+                const res = await fetch(`/api/disputes/${params.id}/generate-draft`, {
+                  method: 'POST',
+                });
+                if (!res.ok) throw new Error('Generate failed');
+                const updated = await res.json();
+                setDispute(updated);
+              } catch (e) {
+                setGenerateError(e instanceof Error ? e.message : 'Unknown error');
+              } finally {
+                setGenerating(false);
+              }
+            }}
+            disabled={generating || dispute.status === 'sent'}
+          >
+            {generating ? 'Generating…' : 'Generate Draft'}
+          </Button>
+          <a href="/" className={cn(buttonVariants({ variant: 'outline' }))}>
+            ← Back
+          </a>
+        </div>
+        {generateError && (
+          <p className="text-sm text-destructive mt-1 text-right">{generateError}</p>
+        )}
       </div>
 
       <Separator />
@@ -175,8 +246,9 @@ export default function DisputeDetailPage({ params }: PageProps) {
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1">Body</p>
               <Textarea
-                readOnly
-                value={currentDraft.body}
+                readOnly={!editing}
+                value={editing ? editedBody : currentDraft.body}
+                onChange={(e) => setEditedBody(e.target.value)}
                 className="min-h-[200px] font-mono text-sm"
               />
             </div>
@@ -184,24 +256,35 @@ export default function DisputeDetailPage({ params }: PageProps) {
             {/* Draft actions */}
             <div className="flex gap-2">
               <Button
-                onClick={() => console.log('Approve draft', currentDraft.version)}
+                onClick={() => handleAction('approve')}
+                disabled={updating}
                 className="bg-green-600 hover:bg-green-700"
               >
                 Approve
               </Button>
               <Button
                 variant="outline"
-                onClick={() => console.log('Edit draft', currentDraft.version)}
+                onClick={() => {
+                  if (editing) {
+                    saveDraft();
+                  } else {
+                    setEditing(true);
+                    setEditedBody(currentDraft.body);
+                  }
+                }}
+                disabled={updating}
               >
-                Edit
+                {editing ? 'Save' : 'Edit'}
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => console.log('Reject draft', currentDraft.version)}
+                onClick={() => handleAction('reject', 'User rejected draft')}
+                disabled={updating}
               >
                 Reject
               </Button>
             </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             {/* Citations */}
             {currentDraft.citations.length > 0 && (

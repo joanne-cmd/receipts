@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@receipts/shared": "workspace:*",
+    "googleapis": "^144.0.0",
     "pino": "^9.3.0",
     "zod": "^3.23.0"
   },
