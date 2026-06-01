@@ -1,330 +1,186 @@
-'use client';
+const MERCHANTS = [
+  { emoji: '📦', name: 'Amazon', desc: 'Returns & refunds' },
+  { emoji: '✈️', name: 'Kenya Airways', desc: 'Flight disputes' },
+  { emoji: '✈️', name: 'Ethiopian Airlines', desc: 'Flight cancellations' },
+  { emoji: '📱', name: 'Safaricom M-PESA', desc: 'Mobile money disputes' },
+  { emoji: '🚗', name: 'Uber', desc: 'Trip & fare disputes' },
+  { emoji: '🎬', name: 'Netflix', desc: 'Billing issues' },
+  { emoji: '🛍️', name: 'Jumia', desc: 'E-commerce disputes' },
+  { emoji: '🎓', name: 'Udemy', desc: 'Course refunds' },
+  { emoji: '📚', name: 'Coursera', desc: 'Subscription disputes' },
+  { emoji: '⚡', name: 'Bolt', desc: 'Ride disputes' },
+  { emoji: '🏠', name: 'Airbnb', desc: 'Accommodation disputes' },
+  { emoji: '📺', name: 'YouTube Premium', desc: 'Subscription issues' },
+];
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
-import type { Dispute, DisputeStatus } from '@/lib/mock-data';
+const TECH_STACK = [
+  'Gemini 2.5 Pro',
+  'Vertex AI Agent Engine',
+  'MongoDB Atlas',
+  'Cloud Run',
+  'Next.js',
+];
 
-function statusBadgeVariant(
-  status: DisputeStatus,
-): 'yellow' | 'blue' | 'purple' | 'green' | 'red' | 'gray' {
-  switch (status) {
-    case 'pending_approval':
-    case 'pending_classification':
-      return 'yellow';
-    case 'approved':
-    case 'sent':
-      return 'blue';
-    case 'awaiting_response':
-    case 'drafting_escalation':
-      return 'purple';
-    case 'resolved_won':
-      return 'green';
-    case 'resolved_lost':
-    case 'referred_to_lawyer':
-      return 'red';
-    default:
-      return 'gray';
-  }
-}
-
-function statusLabel(status: DisputeStatus): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-}
-
-const CLOSED_STATUSES = new Set([
-  'resolved_won',
-  'resolved_lost',
-  'resolved_partial',
-  'cancelled',
-  'referred_to_lawyer',
-]);
-
-type Extracted = {
-  merchant_name: string | null;
-  merchant_support_email: string | null;
-  amount: number | null;
-  issue_type: string | null;
-};
-
-const EMPTY_FORM = {
-  receipt_raw: '',
-  amount_disputed: '',
-};
-
-const EMPTY_EXTRACTED: Extracted = {
-  merchant_name: null,
-  merchant_support_email: null,
-  amount: null,
-  issue_type: null,
-};
-
-export default function InboxPage() {
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [extracted, setExtracted] = useState<Extracted>(EMPTY_EXTRACTED);
-  const [extracting, setExtracting] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/disputes')
-      .then((r) => r.json())
-      .then((data: Dispute[]) => setDisputes(data))
-      .catch(() => setDisputes([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const openCount = disputes.filter((d) => !CLOSED_STATUSES.has(d.status)).length;
-  const totalDisputed = disputes.reduce((sum, d) => sum + (d.amount_disputed ?? 0), 0);
-  const totalRecovered = disputes.reduce((sum, d) => sum + (d.amount_recovered ?? 0), 0);
-
-  async function handleReceiptBlur(e: React.FocusEvent<HTMLTextAreaElement>) {
-    const text = e.target.value;
-    if (text.length < 50) return;
-    setExtracting(true);
-    try {
-      const res = await fetch('/api/extract-receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receipt_raw: text }),
-      });
-      if (!res.ok) return;
-      const data = await res.json() as Extracted;
-      setExtracted(data);
-      if (data.amount != null && !form.amount_disputed) {
-        setForm((f) => ({ ...f, amount_disputed: String(data.amount) }));
-      }
-    } finally {
-      setExtracting(false);
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError(null);
-    setSubmitting(true);
-    try {
-      const body: Record<string, unknown> = {
-        receipt_raw: form.receipt_raw,
-        merchant_email: extracted.merchant_support_email ?? '',
-        merchant_display: extracted.merchant_name ?? '',
-      };
-      if (form.amount_disputed.trim()) body.amount_disputed = parseFloat(form.amount_disputed);
-      if (extracted.issue_type) body.issue_type = extracted.issue_type;
-
-      const res = await fetch('/api/disputes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json() as { error?: string };
-        throw new Error(err.error ?? 'Failed to create dispute');
-      }
-
-      const created = await res.json() as Dispute;
-      setDisputes((prev) => [created, ...prev]);
-      setShowForm(false);
-      setForm(EMPTY_FORM);
-      setExtracted(EMPTY_EXTRACTED);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
+export default function LandingPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Your Disputes</h1>
-        <Button onClick={() => { setShowForm((v) => !v); setFormError(null); setExtracted(EMPTY_EXTRACTED); }}>
-          New Dispute
-        </Button>
-      </div>
+    <div className="min-h-screen font-sans">
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+          <span className="font-bold text-lg tracking-tight">🧾 Receipts</span>
+          <a
+            href="/dashboard"
+            className="text-sm bg-gray-900 text-white px-4 py-2 rounded-md font-medium hover:bg-gray-700 transition-colors"
+          >
+            Open Dashboard →
+          </a>
+        </div>
+      </nav>
 
-      {/* New dispute form */}
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">New Dispute</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Receipt / Order Email</label>
-                <Textarea
-                  required
-                  placeholder="Paste the receipt or order confirmation email here..."
-                  className="min-h-[150px]"
-                  value={form.receipt_raw}
-                  onChange={(e) => setForm((f) => ({ ...f, receipt_raw: e.target.value }))}
-                  onBlur={handleReceiptBlur}
-                />
-                {extracting && (
-                  <p className="text-xs text-muted-foreground">Detecting merchant…</p>
-                )}
-                {!extracting && extracted.merchant_name && (
-                  <p className="text-xs text-green-600">✓ Merchant detected: {extracted.merchant_name}</p>
-                )}
+      {/* HERO */}
+      <section className="bg-[#0f172a] text-white px-6 py-28">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-sm px-4 py-1.5 rounded-full mb-8 text-slate-300">
+            <span className="text-base">✨</span>
+            Powered by Gemini AI + Google Cloud
+          </div>
+          <h1 className="text-5xl font-bold leading-tight mb-6">
+            Get your money back —<br className="hidden sm:block" /> automatically
+          </h1>
+          <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Paste any receipt. Our AI agent reads it, finds the relevant consumer law, drafts a
+            dispute email, and sends it to the merchant on your behalf.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+            <a
+              href="/dashboard"
+              className="bg-white text-gray-900 px-7 py-3.5 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-base"
+            >
+              Start Disputing →
+            </a>
+            <a
+              href="#how-it-works"
+              className="border border-white/40 text-white px-7 py-3.5 rounded-lg font-semibold hover:bg-white/10 transition-colors text-base"
+            >
+              See how it works ↓
+            </a>
+          </div>
+          <p className="text-sm text-slate-500">
+            Covers Amazon, Kenya Airways, Safaricom, Uber, Netflix, Jumia and more
+          </p>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" className="bg-white py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">How it works</h2>
+          <p className="text-center text-gray-500 mb-16 text-lg">Three steps to get your money back</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                emoji: '📋',
+                step: 'Step 1',
+                title: 'Paste your receipt',
+                desc: 'Copy and paste any order confirmation, invoice, or receipt email',
+              },
+              {
+                emoji: '🤖',
+                step: 'Step 2',
+                title: 'AI drafts your dispute',
+                desc: 'Our Gemini-powered agent finds the relevant policy, cites consumer law, and writes a professional dispute letter',
+              },
+              {
+                emoji: '✅',
+                step: 'Step 3',
+                title: 'Approve and send',
+                desc: 'Review the draft, approve it, and we send it directly to the merchant',
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="text-center p-8 rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all"
+              >
+                <div className="text-5xl mb-5">{item.emoji}</div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
+                  {item.step}
+                </p>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
+                <p className="text-gray-500 leading-relaxed">{item.desc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">
-                  Amount Disputed (USD) <span className="text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="89.99"
-                  value={form.amount_disputed}
-                  onChange={(e) => setForm((f) => ({ ...f, amount_disputed: e.target.value }))}
-                />
+      {/* WHAT WE COVER */}
+      <section className="bg-gray-50 py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+            Works with the merchants you use every day
+          </h2>
+          <p className="text-center text-gray-500 mb-14 text-lg">
+            20+ merchants covered and growing
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {MERCHANTS.map((m) => (
+              <div
+                key={m.name}
+                className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+              >
+                <div className="text-3xl mb-3">{m.emoji}</div>
+                <div className="font-semibold text-gray-900 text-sm leading-tight">{m.name}</div>
+                <div className="text-xs text-gray-400 mt-1">{m.desc}</div>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              {formError && (
-                <p className="text-sm text-destructive">{formError}</p>
-              )}
+      {/* BUILT ON */}
+      <section className="bg-white py-24 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Built on Google Cloud</h2>
+          <p className="text-gray-500 mb-12 text-lg">
+            Enterprise-grade AI infrastructure powering every dispute
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {TECH_STACK.map((tech) => (
+              <span
+                key={tech}
+                className="border border-gray-200 rounded-full px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              <div className="flex gap-2">
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? 'Submitting…' : 'Submit Dispute'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      {/* FINAL CTA */}
+      <section className="bg-[#0f172a] text-white py-28 px-6 text-center">
+        <h2 className="text-4xl font-bold mb-4">Ready to fight back?</h2>
+        <p className="text-slate-300 text-xl mb-12">Your first dispute takes 30 seconds</p>
+        <a
+          href="/dashboard"
+          className="inline-block bg-white text-gray-900 px-10 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+        >
+          Start Disputing →
+        </a>
+      </section>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Open Disputes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{loading ? '—' : openCount}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Disputed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">
-              {loading ? '—' : formatCurrency(totalDisputed)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Recovered
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-600">
-              {loading ? '—' : formatCurrency(totalRecovered)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Disputes table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <p className="p-6 text-muted-foreground text-sm">Loading disputes…</p>
-          ) : disputes.length === 0 ? (
-            <p className="p-6 text-muted-foreground text-sm">No disputes yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Merchant</TableHead>
-                  <TableHead>Issue</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {disputes.map((dispute) => (
-                  <TableRow key={String(dispute._id)}>
-                    <TableCell className="font-medium">
-                      {dispute.merchant_display ?? dispute.merchant ?? '—'}
-                    </TableCell>
-                    <TableCell className="capitalize text-muted-foreground">
-                      {dispute.issue_type?.replace(/_/g, ' ') ?? '—'}
-                    </TableCell>
-                    <TableCell>
-                      {dispute.amount_disputed != null
-                        ? formatCurrency(dispute.amount_disputed)
-                        : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusBadgeVariant(dispute.status)}>
-                        {statusLabel(dispute.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(dispute.updated_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/disputes/${String(dispute._id)}`}
-                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-                      >
-                        View
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-gray-400 py-8 px-6">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm">Receipts © 2026 — Built for the Google Cloud Hackathon</p>
+          <a
+            href="https://github.com"
+            className="text-sm hover:text-white transition-colors"
+          >
+            GitHub →
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

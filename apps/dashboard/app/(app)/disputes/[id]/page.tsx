@@ -111,7 +111,7 @@ export default function DisputeDetailPage({ params }: PageProps) {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground">Dispute not found.</p>
-          <a href="/" className={cn(buttonVariants({ variant: 'outline' }))}>
+          <a href="/dashboard" className={cn(buttonVariants({ variant: 'outline' }))}>
             ← Back
           </a>
         </div>
@@ -169,7 +169,7 @@ export default function DisputeDetailPage({ params }: PageProps) {
           >
             {generating ? 'Generating…' : 'Generate Draft'}
           </Button>
-          <a href="/" className={cn(buttonVariants({ variant: 'outline' }))}>
+          <a href="/dashboard" className={cn(buttonVariants({ variant: 'outline' }))}>
             ← Back
           </a>
         </div>
