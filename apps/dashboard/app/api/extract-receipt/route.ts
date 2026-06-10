@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleAuth } from 'google-auth-library';
 
 const VERTEX_ENDPOINT =
-  'https://us-central1-aiplatform.googleapis.com/v1/projects/receipts-agent-2026/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent';
+  'https://us-central1-aiplatform.googleapis.com/v1/projects/receipts-agent-2026/locations/us-central1/publishers/google/models/gemini-2.5-pro:generateContent';
 
 const NULL_RESULT = {
   merchant_name: null,

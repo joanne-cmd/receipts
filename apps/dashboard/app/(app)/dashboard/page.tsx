@@ -110,7 +110,6 @@ export default function InboxPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [extracted, setExtracted] = useState<Extracted>(EMPTY_EXTRACTED);
   const [extracting, setExtracting] = useState(false);
-  const [extractTimedOut, setExtractTimedOut] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterPill>('all');
 
   useEffect(() => {
@@ -131,18 +130,12 @@ export default function InboxPage() {
   async function handleReceiptBlur(e: React.FocusEvent<HTMLTextAreaElement>) {
     const text = e.target.value;
     if (text.length < 50) return;
-    setExtractTimedOut(false);
     flushSync(() => setExtracting(true));
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
-
     try {
       const res = await fetch('/api/extract-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ receipt_raw: text }),
-        signal: controller.signal,
       });
       if (!res.ok) return;
       const data = await res.json() as Extracted;
@@ -150,13 +143,7 @@ export default function InboxPage() {
       if (data.amount != null && !form.amount_disputed) {
         setForm((f) => ({ ...f, amount_disputed: String(data.amount) }));
       }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        setExtracted(EMPTY_EXTRACTED);
-        setExtractTimedOut(true);
-      }
     } finally {
-      clearTimeout(timer);
       setExtracting(false);
     }
   }
@@ -191,8 +178,7 @@ export default function InboxPage() {
       setShowForm(false);
       setForm(EMPTY_FORM);
       setExtracted(EMPTY_EXTRACTED);
-      setExtractTimedOut(false);
-    } catch (err) {
+         } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setSubmitting(false);
@@ -250,11 +236,6 @@ export default function InboxPage() {
                 {!extracting && extracted.merchant_name && (
                   <p className="text-xs font-medium text-green-600">
                     ✓ Merchant detected: {extracted.merchant_name}
-                  </p>
-                )}
-                {!extracting && extractTimedOut && (
-                  <p className="text-xs text-amber-600">
-                    Detection timed out — merchant will be identified during draft generation
                   </p>
                 )}
               </div>
