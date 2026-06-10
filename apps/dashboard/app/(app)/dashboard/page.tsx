@@ -196,7 +196,7 @@ export default function InboxPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Your Disputes</h1>
         <Button
-          onClick={() => { setShowForm((v) => !v); setFormError(null); setExtracted(EMPTY_EXTRACTED); setExtractTimedOut(false); }}
+          onClick={() => { setShowForm((v) => !v); setFormError(null); setExtracted(EMPTY_EXTRACTED); }}
         >
           New Dispute
         </Button>
@@ -211,7 +211,7 @@ export default function InboxPage() {
               <button
                 type="button"
                 aria-label="Close"
-                onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); setExtractTimedOut(false); }}
+                onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); }}
                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none transition-colors"
               >
                 ×
@@ -263,7 +263,7 @@ export default function InboxPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); setExtractTimedOut(false); }}
+                  onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); }}
                 >
                   Cancel
                 </Button>
