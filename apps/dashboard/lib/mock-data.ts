@@ -66,7 +66,7 @@ export interface Dispute {
   merchant_display?: string;
   amount_disputed?: number;
   amount_recovered?: number;
-  currency: 'USD';
+  currency?: string;
   receipt_raw: string;
   receipt_parsed?: {
     order_id?: string;

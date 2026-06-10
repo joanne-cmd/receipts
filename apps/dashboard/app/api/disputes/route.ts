@@ -21,9 +21,10 @@ export async function POST(req: NextRequest) {
     merchant_display?: unknown;
     amount_disputed?: unknown;
     issue_type?: unknown;
+    currency?: unknown;
   };
 
-  const { receipt_raw, merchant_email, merchant_display, amount_disputed, issue_type } = body;
+  const { receipt_raw, merchant_email, merchant_display, amount_disputed, issue_type, currency } = body;
 
   if (typeof receipt_raw !== 'string' || !receipt_raw.trim()) {
     return NextResponse.json({ error: 'receipt_raw is required' }, { status: 400 });
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
     merchant_display: displayName || merchant,
     ...(typeof amount_disputed === 'number' ? { amount_disputed } : {}),
     ...(typeof issue_type === 'string' && issue_type ? { issue_type } : {}),
+    currency: typeof currency === 'string' && currency ? currency : 'USD',
     drafts: [],
     current_draft_version: 0,
     merchant_responses: [],

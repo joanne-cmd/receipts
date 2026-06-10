@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,8 +46,20 @@ function statusLabel(status: DisputeStatus): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+function formatAmount(amount: number, currency?: string): string {
+  if (!currency || currency === 'USD') {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  }
+  return new Intl.NumberFormat('en-KE', { style: 'currency', currency }).format(amount);
+}
+
+function summarizeAmounts(items: { amount_disputed?: number; amount_recovered?: number; currency?: string }[], field: 'amount_disputed' | 'amount_recovered'): string {
+  const withAmount = items.filter((d) => d[field] != null);
+  if (withAmount.length === 0) return formatAmount(0, 'USD');
+  const total = withAmount.reduce((sum, d) => sum + (d[field] as number), 0);
+  const currencies = new Set(withAmount.map((d) => d.currency ?? 'USD'));
+  if (currencies.size === 1) return formatAmount(total, [...currencies][0]);
+  return new Intl.NumberFormat('en-US').format(total);
 }
 
 const CLOSED_STATUSES = new Set([
@@ -62,6 +75,7 @@ type Extracted = {
   merchant_support_email: string | null;
   amount: number | null;
   issue_type: string | null;
+  currency: string | null;
 };
 
 const EMPTY_FORM = {
@@ -74,6 +88,7 @@ const EMPTY_EXTRACTED: Extracted = {
   merchant_support_email: null,
   amount: null,
   issue_type: null,
+  currency: null,
 };
 
 type FilterPill = 'all' | 'pending' | 'approved' | 'sent' | 'resolved';
@@ -95,6 +110,7 @@ export default function InboxPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [extracted, setExtracted] = useState<Extracted>(EMPTY_EXTRACTED);
   const [extracting, setExtracting] = useState(false);
+  const [extractTimedOut, setExtractTimedOut] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterPill>('all');
 
   useEffect(() => {
@@ -106,8 +122,6 @@ export default function InboxPage() {
   }, []);
 
   const openCount = disputes.filter((d) => !CLOSED_STATUSES.has(d.status)).length;
-  const totalDisputed = disputes.reduce((sum, d) => sum + (d.amount_disputed ?? 0), 0);
-  const totalRecovered = disputes.reduce((sum, d) => sum + (d.amount_recovered ?? 0), 0);
 
   const filterStatuses = FILTER_STATUSES[activeFilter];
   const visibleDisputes = filterStatuses
@@ -117,12 +131,18 @@ export default function InboxPage() {
   async function handleReceiptBlur(e: React.FocusEvent<HTMLTextAreaElement>) {
     const text = e.target.value;
     if (text.length < 50) return;
-    setExtracting(true);
+    setExtractTimedOut(false);
+    flushSync(() => setExtracting(true));
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+
     try {
       const res = await fetch('/api/extract-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ receipt_raw: text }),
+        signal: controller.signal,
       });
       if (!res.ok) return;
       const data = await res.json() as Extracted;
@@ -130,7 +150,13 @@ export default function InboxPage() {
       if (data.amount != null && !form.amount_disputed) {
         setForm((f) => ({ ...f, amount_disputed: String(data.amount) }));
       }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setExtracted(EMPTY_EXTRACTED);
+        setExtractTimedOut(true);
+      }
     } finally {
+      clearTimeout(timer);
       setExtracting(false);
     }
   }
@@ -147,6 +173,7 @@ export default function InboxPage() {
       };
       if (form.amount_disputed.trim()) body.amount_disputed = parseFloat(form.amount_disputed);
       if (extracted.issue_type) body.issue_type = extracted.issue_type;
+      if (extracted.currency) body.currency = extracted.currency;
 
       const res = await fetch('/api/disputes', {
         method: 'POST',
@@ -164,6 +191,7 @@ export default function InboxPage() {
       setShowForm(false);
       setForm(EMPTY_FORM);
       setExtracted(EMPTY_EXTRACTED);
+      setExtractTimedOut(false);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -182,7 +210,7 @@ export default function InboxPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Your Disputes</h1>
         <Button
-          onClick={() => { setShowForm((v) => !v); setFormError(null); setExtracted(EMPTY_EXTRACTED); }}
+          onClick={() => { setShowForm((v) => !v); setFormError(null); setExtracted(EMPTY_EXTRACTED); setExtractTimedOut(false); }}
         >
           New Dispute
         </Button>
@@ -197,7 +225,7 @@ export default function InboxPage() {
               <button
                 type="button"
                 aria-label="Close"
-                onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); }}
+                onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); setExtractTimedOut(false); }}
                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none transition-colors"
               >
                 ×
@@ -222,6 +250,11 @@ export default function InboxPage() {
                 {!extracting && extracted.merchant_name && (
                   <p className="text-xs font-medium text-green-600">
                     ✓ Merchant detected: {extracted.merchant_name}
+                  </p>
+                )}
+                {!extracting && extractTimedOut && (
+                  <p className="text-xs text-amber-600">
+                    Detection timed out — merchant will be identified during draft generation
                   </p>
                 )}
               </div>
@@ -249,7 +282,7 @@ export default function InboxPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); }}
+                  onClick={() => { setShowForm(false); setFormError(null); setForm(EMPTY_FORM); setExtracted(EMPTY_EXTRACTED); setExtractTimedOut(false); }}
                 >
                   Cancel
                 </Button>
@@ -275,7 +308,7 @@ export default function InboxPage() {
             Total Disputed
           </p>
           <p className="text-4xl font-bold text-gray-900">
-            {loading ? '—' : formatCurrency(totalDisputed)}
+            {loading ? '—' : summarizeAmounts(disputes, 'amount_disputed')}
           </p>
         </div>
         <div className="rounded-xl bg-white shadow-sm p-6">
@@ -283,7 +316,7 @@ export default function InboxPage() {
             Total Recovered
           </p>
           <p className="text-4xl font-bold text-green-600">
-            {loading ? '—' : formatCurrency(totalRecovered)}
+            {loading ? '—' : summarizeAmounts(disputes, 'amount_recovered')}
           </p>
         </div>
       </div>
@@ -347,7 +380,7 @@ export default function InboxPage() {
                       </TableCell>
                       <TableCell className="text-gray-700">
                         {dispute.amount_disputed != null
-                          ? formatCurrency(dispute.amount_disputed)
+                          ? formatAmount(dispute.amount_disputed, dispute.currency)
                           : '—'}
                       </TableCell>
                       <TableCell>

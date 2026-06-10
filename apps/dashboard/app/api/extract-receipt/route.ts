@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleAuth } from 'google-auth-library';
 
 const VERTEX_ENDPOINT =
-  'https://us-central1-aiplatform.googleapis.com/v1/projects/receipts-agent-2026/locations/us-central1/publishers/google/models/gemini-2.5-pro:generateContent';
+  'https://us-central1-aiplatform.googleapis.com/v1/projects/receipts-agent-2026/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent';
 
 const NULL_RESULT = {
   merchant_name: null,
   merchant_support_email: null,
   amount: null,
   issue_type: null,
+  currency: null,
 };
 
 export async function POST(req: NextRequest) {
@@ -33,7 +34,8 @@ export async function POST(req: NextRequest) {
       `  "merchant_name": "company name e.g. Amazon, Udemy",\n` +
       `  "merchant_support_email": "support email address if found, else null",\n` +
       `  "amount": numeric amount as number or null,\n` +
-      `  "issue_type": one of: undelivered_goods, wrong_charge, service_not_rendered, cancellation_refund, warranty_claim, billing_error\n` +
+      `  "issue_type": one of: undelivered_goods, wrong_charge, service_not_rendered, cancellation_refund, warranty_claim, billing_error,\n` +
+      `  "currency": "3-letter currency code e.g. USD, KES, GBP, EUR — default to USD if not found"\n` +
       `}\n\nReceipt text:\n${body.receipt_raw}`;
 
     const geminiRes = await fetch(VERTEX_ENDPOINT, {
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
       merchant_support_email?: unknown;
       amount?: unknown;
       issue_type?: unknown;
+      currency?: unknown;
     };
 
     return NextResponse.json({
@@ -68,6 +71,7 @@ export async function POST(req: NextRequest) {
         typeof parsed.merchant_support_email === 'string' ? parsed.merchant_support_email : null,
       amount: typeof parsed.amount === 'number' ? parsed.amount : null,
       issue_type: typeof parsed.issue_type === 'string' ? parsed.issue_type : null,
+      currency: typeof parsed.currency === 'string' ? parsed.currency : null,
     });
   } catch {
     return NextResponse.json(NULL_RESULT);
