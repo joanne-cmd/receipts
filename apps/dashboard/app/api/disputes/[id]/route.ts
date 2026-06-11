@@ -64,7 +64,7 @@ export async function PATCH(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setFields: Record<string, any> = {
-    status: action === 'approve' ? 'pending_approval' : 'pending_classification',
+    status: action === 'approve' ? 'approved' : 'pending_classification',
     updated_at: now,
   };
 
