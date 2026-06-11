@@ -17,3 +17,5 @@ pnpm-debug.log*
 Thumbs.db
 
 .pnpm-store/
+services/receipts-adk/.venv/
+services/receipts-adk/__pycache__/
